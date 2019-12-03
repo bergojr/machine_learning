@@ -5,9 +5,12 @@
 
 library(dplyr)
 library(AppliedPredictiveModeling)
-data(segmentationOriginal)
 library(caret)
 library(rpart)
+library(partykit)
+
+data(segmentationOriginal)
+
 
 # Drop the columns of the dataframe
 select (mydata,-c(mpg,cyl,wt))
@@ -23,3 +26,4 @@ set.seed(125)
 tree1 <- rpart(Class ~ ., data = train)
 
 tree1a <- as.party(tree1)
+plot(tree1a)
