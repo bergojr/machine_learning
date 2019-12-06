@@ -84,22 +84,40 @@ mod_stacked <- train(diagnosis ~ .,
 pred_stacked <- predict(mod_stacked,stacked_predicitions)
 confusionMatrix(pred_stacked,testing$diagnosis)$overall[1]
 
+
+
+
 # Questão 3
 
-library(pgmm)
-data(olive)
-olive = olive[,-1]
+# http://www.sthda.com/english/articles/37-model-selection-essentials-in-r/153-penalized-regression-essentials-ridge-lasso-elastic-net/
 
-oliveFit <- train(Area ~. , method = "rpart", data = olive)
+library(caret)
+set.seed(3523)
+library(AppliedPredictiveModeling)
+data(concrete)
+inTrain = createDataPartition(concrete$CompressiveStrength, p = 3/4)[[1]]
+training = concrete[ inTrain,]
+testing = concrete[-inTrain,]
 
+library(tidyverse)
+library(glmnet)
 
+# Find the best lambda using cross-validation
 
-newdata = as.data.frame(t(colMeans(olive)))
+#cv <- cv.glmnet(x, y, alpha = 0)
 
-predArea <- predict(oliveFit,newdata = newdata)
+#cv <- cv.glmnet(CompressiveStrength ~ ., data=training, alpha = 0)
 
+x <- as.matrix(select(training, c(-CompressiveStrength)))
+y <- as.matrix(select(training, c(CompressiveStrength)))
 
-fancyRpartPlot(oliveFit$finalModel)
+cv <- cv.glmnet(x, y, alpha = 0)
+# Display the best lambda value
+cv$lambda.min
+
+object <- enet(x,y,lambda=1)
+plot(object)
+
 
 # Questão 4
 
