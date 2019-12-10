@@ -8,8 +8,8 @@ library(caret)
 
 library(parallel)
 library(doParallel)
-cluster <- makeCluster(detectCores() - 1) # convention to leave 1 core for OS
-registerDoParallel(cluster)
+# cluster <- makeCluster(detectCores() - 1) # convention to leave 1 core for OS
+# registerDoParallel(cluster)
 
 URL_training <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
 URL_testing <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
@@ -54,8 +54,20 @@ features_useful <- features_names[!columns_with_NA]
 training_full <- raw_training[,features_useful]
 #head(training)
 testing_full <- raw_testing[,features_useful[1:59]]
+
 training <- training_full[,8:60]
 testing <- testing_full[,8:59]
+
+
+col_trt <- dim(training)[2]
+col_tst <- dim(testing)[2]
+
+training[, 1:(col_trt-1)] <- remove.factors(training[,1:(col_trt-1)])
+testing <- remove.factors(testing)
+
+training[1:52] <- as.numeric(unlist(training[1:52]))
+testing[1:52] <- as.numeric(unlist(testing[]))
+
 
 rm(testing_full)
 rm(training_full)
@@ -72,12 +84,13 @@ trainData <- training[trainRowNumbers,]
 # Step 3: Create the test dataset
 validData <- training[-trainRowNumbers,]
 
-#load(file = "data.Rdata")
 
 # define training control
 train_control <- trainControl(method="cv", number=5, allowParallel = TRUE)
 # train the model
-model <- train(classe ~., data=training, trControl=train_control, method="rf")
+model <- train(classe ~., data=trainData, trControl=train_control, method="rf")
 # summarize resultsmemory.limit()
-
+predicao <- predict(model, testing)
 print(model)
+
+# B A A A A E D B A A B C B A E E A B B B
