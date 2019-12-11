@@ -1,0 +1,41 @@
+---
+title: "Machine Learning - Project Assignment"
+author: "Luiz Bergo"
+date: "11/12/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(taRifx)
+library(skimr)
+library(caret)
+library(rpart)
+library(parallel)
+library(doParallel)
+```
+
+## Intro
+
+At the present days wearable devices such as *Jawbone Up*, *Nike FuelBand*, and *Fitbit* let us gather a lot of information that can be processed to identify manners, behaviors and actions of users. Some of the findings understandign such information can be used to improve health in general.  
+
+The researches invited 6 participants to use mobile devices on belt, forearm, arm, and dumbell. The accelerometers inforamtion were recorded and the participants should correctly identify their activities in 5 classes.   
+
+Machine learning technics were applied to data aiming to correctly classify the activities according to the participants.
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+Many thanks to PUC-Rio who generous share the data used to train and validate this model, available at: <http://groupware.les.inf.puc-rio.br/har>
