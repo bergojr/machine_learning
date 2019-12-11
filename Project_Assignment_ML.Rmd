@@ -22,20 +22,100 @@ At the present days wearable devices such as *Jawbone Up*, *Nike FuelBand*, and 
 
 The researches invited 6 participants to use mobile devices on belt, forearm, arm, and dumbell. The accelerometers inforamtion were recorded and the participants should correctly identify their activities in 5 classes.   
 
-Machine learning technics were applied to data aiming to correctly classify the activities according to the participants.
+Machine learning technics were applied to data aiming to correctly classify the activities according to participant indications.
 
-```{r cars}
-summary(cars)
+
+## Exploratory Data Analysis
+
+The original data set can be obtained in the following link, <http://groupware.les.inf.puc-rio.br/har>, for wich I would like to glad PUC-Rio who generous share the data used to train and validate the model present in this work
+
+For purpose of this training and test the dataset are available as follow:  
+Training:<https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv>  
+Testing:<https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv>  
+
+
+
+The data set is composed for 160 variables and 19.622 measurements:
+
+
+```{r dataset, echo=FALSE}
+URL_training <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+URL_testing <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+fileNameTraining <- "pml-training.csv"
+fileNameTesting <- "pml-testing.csv"
+
+
+# Download files if not available
+
+if(!file.exists(fileNameTraining)){
+  download.file(URL_training,fileNameTraining) 
+}
+
+if(!file.exists(fileNameTesting)){
+  download.file(URL_testing,fileNameTesting)
+}
+
+
+raw_training <- read.csv2("pml-training.csv",header = TRUE, sep = ",", 
+                          na.strings = c("","<NA>"))
+raw_testing <- read.csv2("pml-testing.csv",header = TRUE, sep = ",", 
+                          na.strings = c("","<NA>"))
+
+skimmed <- skim(raw_training)
+skimmed[, c(1:4, 9:11, 13:15)]
+
 ```
 
-## Including Plots
+A first glance of data suggest numerous features with missing information. Also, most of the data were read in factor format, that could difficult the training with trees. Considering that this is a classification problem, a random forest is proposed and the data i cleaned attemp to improve the results of classification. Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.  
 
-You can also embed plots, for example:
+Main data transformation include:  
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+- Remove features with many incomplete data (19.216 lines with NA).  
+- Remove factor values and transform in continuous space (numeric).  
+- Remove features that maybe not will helo improve model classification as date, name, experiment codes etc.  
+
+The final result of data training is observed in the summary:
+
+
+```{r}
+count_na <- function(x) {
+  if (any(is.na(x))) {
+    return(sum(is.na(x)))
+  } else {
+    return (sum(x=="NA"))
+  }
+}
+
+
+check_valid <- as.data.frame(apply(raw_training, 2, count_na))
+
+columns_with_NA <- check_valid[,1]==19216
+features_names <- names(raw_training)
+features_useful <- features_names[!columns_with_NA]
+training_full <- raw_training[,features_useful]
+#head(training)
+testing_full <- raw_testing[,features_useful[1:59]]
+
+training <- training_full[,8:60]
+testing <- testing_full[,8:59]
+
+
+col_trt <- dim(training)[2]
+col_tst <- dim(testing)[2]
+
+training[, 1:(col_trt-1)] <- remove.factors(training[,1:(col_trt-1)])
+testing <- remove.factors(testing)
+
+training[1:52] <- as.numeric(unlist(training[1:52]))
+testing[1:52] <- as.numeric(unlist(testing[]))
+
+skimmed <- skim(training)
+skimmed[, c(1:4, 9:11, 13:15)]
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## Classification Model Training
 
-Many thanks to PUC-Rio who generous share the data used to train and validate this model, available at: <http://groupware.les.inf.puc-rio.br/har>
+
+
