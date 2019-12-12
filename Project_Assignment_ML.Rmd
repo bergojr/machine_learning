@@ -27,15 +27,16 @@ Machine learning technics were applied to data aiming to correctly classify the 
 
 ## Exploratory Data Analysis
 
-The original data set can be obtained in the following link, <http://groupware.les.inf.puc-rio.br/har>, for wich I would like to glad PUC-Rio who generous share the data used to train and validate the model present in this work
+The original data set can be obtained in the following link, <http://groupware.les.inf.puc-rio.br/har>, for wich I would like to glad PUC-Rio who generous share the data used to train and validate the model present in this work.  
 
-For purpose of this training and test the dataset are available as follow:  
+For purpose of this training and test the dataset are available as follow: 
+
 Training:<https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv>  
 Testing:<https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv>  
 
 
 
-The data set is composed for 160 variables and 19.622 measurements:
+The dataset is composed for 160 variables and 19.622 measurements:  
 
 
 ```{r dataset, echo=FALSE}
@@ -62,14 +63,15 @@ raw_training <- read.csv2("pml-training.csv",header = TRUE, sep = ",",
 raw_testing <- read.csv2("pml-testing.csv",header = TRUE, sep = ",", 
                           na.strings = c("","<NA>"))
 
-skimmed <- skim(raw_training)
-skimmed[, c(1:4, 9:11, 13:15)]
-
+skim_raw <- skim(raw_training)
+summary(skim_raw)
 ```
 
-A first glance of data suggest numerous features with missing information. Also, most of the data were read in factor format, that could difficult the training with trees. Considering that this is a classification problem, a random forest is proposed and the data i cleaned attemp to improve the results of classification. Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.  
 
-Main data transformation include:  
+
+A first glance of data suggest numerous features with missing information. Also, most of the data were read in factor format, that could difficult the training with trees. Considering that this is a classification problem, a random forest is proposed and the data i cleaned attemp to improve the results of classification.  
+
+Main **data transformation** includes:  
 
 - Remove features with many incomplete data (19.216 lines with NA).  
 - Remove factor values and transform in continuous space (numeric).  
@@ -90,13 +92,15 @@ count_na <- function(x) {
 
 check_valid <- as.data.frame(apply(raw_training, 2, count_na))
 
+# REmoving columns with high number of NA
 columns_with_NA <- check_valid[,1]==19216
 features_names <- names(raw_training)
 features_useful <- features_names[!columns_with_NA]
 training_full <- raw_training[,features_useful]
-#head(training)
+
 testing_full <- raw_testing[,features_useful[1:59]]
 
+# Removing columns that not contribute to classification
 training <- training_full[,8:60]
 testing <- testing_full[,8:59]
 
@@ -104,18 +108,118 @@ testing <- testing_full[,8:59]
 col_trt <- dim(training)[2]
 col_tst <- dim(testing)[2]
 
+# Removing factors
 training[, 1:(col_trt-1)] <- remove.factors(training[,1:(col_trt-1)])
 testing <- remove.factors(testing)
 
+# Converting types to continuous space
 training[1:52] <- as.numeric(unlist(training[1:52]))
 testing[1:52] <- as.numeric(unlist(testing[]))
 
-skimmed <- skim(training)
-skimmed[, c(1:4, 9:11, 13:15)]
-
+skim_training <- skim(training)
+summary(skim_training)
+skim_training[, c(2,8,9)]
 ```
+
+
 
 ## Classification Model Training
 
+Considering the classifying nature of problem a natural choice lay in options based on decision trees. Considering that **random forests** are actually known as ones of the greatest classifiers methods they were chosen to be trained and used for predict the classes of test dataset. The training has main steps:  
 
+- Split the data into training and validating dataset.  
+- Configure the parameters for modeling.
+- Training and validate the model.
+- Save the final model.
+
+During the training some issues related to memory leak were detect, to overcome then, parallel processing were configured and the training size were reduced to permit training.
+
+The training process taken a reasonable processing, for the sake of time saving the model were recorded for further use.
+
+
+```{r, cache=TRUE}
+
+set.seed(1921)
+
+# Get row numbers for the training data
+trainRowNumbers <- createDataPartition(training$classe, p=0.7, list=FALSE)
+
+# Create the training  dataset
+trainData <- training[trainRowNumbers,]
+
+# Create the validate dataset
+validData <- training[-trainRowNumbers,]
+
+
+# Define training control
+train_control <- trainControl(method="cv", number=5, allowParallel = TRUE)
+
+# Train the model
+
+if (!file.exists("final_model.rds")){
+  # Initializing cluster
+  cluster <- makeCluster(detectCores() - 1) # convention to leave 1 core for OS
+  registerDoParallel(cluster)
+  
+  # Training model
+  model <- train(classe ~., data=trainData, trControl=train_control, method="rf")
+  
+  # Stopping clusters
+  stopCluster(cluster); registerDoSEQ(); rm(list = "cluster")
+  # Saving model 
+  saveRDS(model, file = "final_model.rds")
+} else {
+  # Restore model
+  model <- readRDS(file = "final_model.rds")
+}
+
+
+model
+
+```
+
+The model proposed depict an **accuracy of 0.9905 using 27 features**.  
+
+A validation of model against unknow validating test is proposed.
+
+```{r}
+# Predict values for validate dataset
+
+pred_valid <- predict(model, validData)
+
+conf_matrix <- confusionMatrix(pred_valid,validData$classe)
+conf_matrix$table
+
+round(conf_matrix$overall,4)
+```
+
+The final model suggests and adequated accuracy with 0.9939 for unknown activity classification.
+
+Final verification using the test data set comprove the validity of proposed model with **100% of correct classification** quizz.
+
+
+
+
+
+
+## Apendix
+
+Complete information of **raw data training**:  
+
+```{r}
+skim_raw[, c(1:4, 9:11, 13:15)]
+```
+
+Complete information of **cleaned data training**:  
+
+```{r}
+skim_training[, c(1:4, 9:11, 13:15)]
+```
+
+
+Detailed information of **final model**:  
+
+```{r}
+conf_matrix
+```
 
